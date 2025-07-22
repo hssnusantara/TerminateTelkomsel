@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard NGI</title>
+  <base target="_top">
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #e9ecef; }
+    #container { display: flex; flex-direction: row; height: 100vh; }
+    #sidebar { width: 250px; background: #fff; padding: 15px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); }
+    #main { flex: 1; padding: 20px; overflow-y: auto; }
+    .chart-container { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    #chart { min-height: 450px; display: flex; align-items: center; justify-content: center; }
+    h2 { margin-top: 0; color: #333; }
+    select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+    .kpi-display { text-align: center; }
+    .kpi-display .kpi-title { font-size: 24px; color: #666; margin-bottom: 10px;}
+    .kpi-display .kpi-value { font-size: 52px; font-weight: bold; color: #2c3e50; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="sidebar">
+      <h2>Pilih Visualisasi</h2>
+      <select id="chartType">
+        <option value="bar">📊 Jumlah MSISDN per Project</option>
+        <option value="pie">🥧 Distribusi per Project</option>
+        <option value="kpi">💰 KPI: Total Biaya</option>
+      </select>
+    </div>
+    <div id="main">
+      <div id="chart" class="chart-container"></div>
+      <div id="table" class="chart-container"></div>
+    </div>
+  </div>
+
+  <script>
+    // =====================================================================
+    // === PENTING! GANTI URL INI DENGAN URL API /exec DARI TAHAP 1 ===
+    // =====================================================================
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyNtuA7o4jkdNugtRu4CK_U1m7qXJNEWlxl8FmYIePoGCeVsvchEzgBcWft2C0z2akt/exec';
+
+    google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+    google.charts.setOnLoadCallback(fetchData);
+
+    let chartData = null;
+
+    async function fetchData() {
+      const chartDiv = document.getElementById('chart');
+      chartDiv.innerHTML = '<h2>Menghubungi API...</h2>';
+      try {
+        const response = await fetch(WEB_APP_URL);
+        if (!response.ok) throw new Error(`API merespon dengan status ${response.status}`);
+        const result = await response.json();
+        if (result.status === 'success') {
+          renderDashboard(result.data);
+        } else {
+          throw new Error(result.message || "API mengembalikan error.");
+        }
+      } catch (error) {
+        chartDiv.innerHTML = `<h2 style="color:red;">Error: ${error.message}</h2><p>Pastikan URL API sudah benar dan deployment diatur ke 'Anyone'.</p>`;
+      }
+    }
+    function renderDashboard(dataFromServer) { /* ... sama seperti sebelumnya ... */ }
+    function drawChart() { /* ... sama seperti sebelumnya ... */ }
+    function drawTable() { /* ... sama seperti sebelumnya ... */ }
+    
+    // Salin-tempel fungsi-fungsi yang sudah benar dari kode sebelumnya
+    function renderDashboard(dataFromServer) {
+      chartData = dataFromServer;
+      document.getElementById('chart').innerHTML = '';
+      const chartTypeSelect = document.getElementById('chartType');
+      chartTypeSelect.addEventListener('change', drawChart);
+      drawChart();
+      drawTable();
+    }
+    function drawChart() {
+      if (!chartData) return;
+      const chartDiv = document.getElementById('chart');
+      const chartType = document.getElementById('chartType').value;
+      chartDiv.innerHTML = '';
+      if (chartType === 'bar') {
+        const dataTable = google.visualization.arrayToDataTable(chartData.barData);
+        new google.visualization.ColumnChart(chartDiv).draw(dataTable, { title: 'Jumlah MSISDN per Project', legend: { position: 'none' } });
+      } else if (chartType === 'pie') {
+        const dataTable = google.visualization.arrayToDataTable(chartData.pieData);
+        new google.visualization.PieChart(chartDiv).draw(dataTable, { title: 'Distribusi MSISDN berdasarkan Project', is3D: true });
+      } else if (chartType === 'kpi') {
+        const formattedCost = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(chartData.totalCost);
+        chartDiv.innerHTML = `<div class="kpi-display"><div class="kpi-title">Total Biaya Keseluruhan</div><div class="kpi-value">${formattedCost}</div></div>`;
+      }
+    }
+    function drawTable() {
+      if (!chartData || !chartData.top10Data) return;
+      const tableDiv = document.getElementById('table');
+      tableDiv.innerHTML = '';
+      const dataTable = google.visualization.arrayToDataTable(chartData.top10Data);
+      const formatter = new google.visualization.NumberFormat({prefix: 'Rp ', groupingSymbol: '.', fractionDigits: 0});
+      formatter.format(dataTable, 2);
+      new google.visualization.Table(tableDiv).draw(dataTable, { title: 'Rincian Data Project', showRowNumber: true, width: '100%', height: '100%', sort: 'enable' });
+    }
+  </script>
+</body>
+</html>
